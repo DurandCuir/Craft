@@ -21,8 +21,9 @@ version est prête. Craft ne fait que télécharger : rien n'est envoyé sur vou
 ## Licence
 
 Craft demande une clé de licence à votre nom : demandez-la à la personne qui vous a partagé Craft.
-Sans clé, l'essai complet dure 30 jours ; ensuite, seul l'export (PDF, DXF, SVG, DWG) demande la licence.
-Vos patrons restent toujours ouverts et enregistrables.
+Sans clé, l'essai complet dure 7 jours. Sans licence valable, Craft passe en lecture seule : vos patrons
+s'ouvrent toujours, mais dessiner, modifier et exporter demandent la clé. Tout repart dès qu'elle est collée.
+Pour la demander : Aide › Activer une licence… › **Demander une clé** (un e-mail tout prêt).
 
 ## Désinstaller
 
