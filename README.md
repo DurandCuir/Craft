@@ -4,7 +4,7 @@ Logiciel de patronage 2D pour la maroquinerie, pour Windows 10 et 11.
 
 ## Installer Craft
 
-1. Téléchargez **[Craft_Installation.zip](https://github.com/DurandCuir/Craft/releases/latest/download/Craft_Installation.zip)**.
+1. Téléchargez **[Craft_Installation.zip](https://github.com/DurandCuir/Craft/raw/main/Craft_Installation.zip)**.
 2. Faites un clic droit sur le fichier téléchargé, puis **Extraire tout…**, et ouvrez le dossier extrait.
 3. Double-cliquez sur **Installer Craft**.
    Si Windows affiche « Windows a protégé votre ordinateur » : **Informations complémentaires**, puis **Exécuter quand même**.
@@ -33,4 +33,5 @@ Paramètres de Windows › Applications › Craft › Désinstaller. Vos patrons
 - Python 3.12 (licence de la Python Software Foundation, avec celles de Tcl/Tk, OpenSSL et des autres bibliothèques
   de Python : fichier `Python\LICENSE.txt`).
 - GNU LibreDWG 0.13.3 (GNU GPL v3 ou ultérieure), pour ouvrir et écrire les DWG : son code source et le correctif de
-  Craft sont joints à la version 0.19.15 (`LibreDWG-0.13.3-sources.tar.gz`, `LibreDWG-0.13.3-craft.patch`).
+  Craft sont dans le dossier [sources](sources) (`LibreDWG-0.13.3-sources.tar.gz`, `LibreDWG-0.13.3-craft.patch`).
+- Les certificats racine de Mozilla (licence MPL 2.0), pour la connexion sécurisée des mises à jour.

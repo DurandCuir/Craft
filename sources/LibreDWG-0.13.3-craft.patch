@@ -1,0 +1,76 @@
+--- in_dxf.c.orig	2026-11-05 16:20:13.983555121 +0100
++++ in_dxf.c	2026-11-05 17:41:42.734768216 +0100
+@@ -2318,9 +2318,10 @@
+         }
+       else if (pair->code == 70)
+         {
++          /* Craft 0.19.9: closed AND plinegen (DXF 129, every Mozart piece): the plinegen bit was lost ("else if") */
+           if (pair->value.i & 1) /* only if closed or not */
+             o->flag |= 512;
+-          else if (pair->value.i & 128) /* plinegen? */
++          if (pair->value.i & 128) /* plinegen */
+             o->flag |= 256;
+           LOG_TRACE ("LWPOLYLINE.flag = %d [BS 70]\n", o->flag);
+         }
+@@ -9876,11 +9877,10 @@
+           else if (pair->code == 70 && obj->fixedtype == DWG_TYPE_LWPOLYLINE)
+             {
+               Dwg_Entity_LWPOLYLINE *o = obj->tio.entity->tio.LWPOLYLINE;
+-              o->flag = pair->value.i;
+               // 1 => 512 closed
+-              // 128: plinegen
+-              if (o->flag & 1)
+-                o->flag = (o->flag - 1) + 512;
++              // 128: plinegen => 256 (Craft 0.19.9: was kept as 128, a bit with no meaning in the DWG)
++              o->flag = (o->flag & ~(512 | 256)) | ((pair->value.i & 1) ? 512 : 0)
++                        | ((pair->value.i & 128) ? 256 : 0);
+               LOG_TRACE ("LWPOLYLINE.flag => %d [BS 70]\n", flag);
+               break;
+             }
+@@ -12136,6 +12136,10 @@
+                     obj->dxfname = NULL;
+                   return DWG_ERR_INVALIDDWG;
+                 }
++              /* Craft 0.19.9: a record with its own handle (DXF code 5) was already put in its table's
++                 entries[] by new_object: added once more here, every name was twice in the table (AutoCAD:
++                 "Id Repeated in table", the drawing had to be recovered). */
++              const int craft_had_handle = obj->handle.value ? 1 : 0;
+               // A minimal DXF will have no handle values
+               if (!obj->handle.value)
+                 {
+@@ -12145,6 +12149,7 @@
+                   LOG_TRACE ("%s.handle = (0.%d." FORMAT_RLLx ")\n", obj->name,
+                              obj->handle.size, obj->handle.value);
+                 }
++              if (!craft_had_handle)
+               {
+                 Dwg_Object_BLOCK_CONTROL *_ctrl
+                     = ctrl->tio.object->tio.BLOCK_CONTROL;
+@@ -12158,11 +12163,11 @@
+                       = ctrl->tio.object->tio.BLOCK_CONTROL;
+                   if (_ctrl->model_space
+                       && obj->handle.value == _ctrl->model_space->absolute_ref)
+-                    i--;
++                    { if (!craft_had_handle) i--; }
+                   else if (_ctrl->paper_space
+                            && obj->handle.value
+                                   == _ctrl->paper_space->absolute_ref)
+-                    i--;
++                    { if (!craft_had_handle) i--; }
+                 }
+               else if (strEQc (table, "LTYPE"))
+                 {
+@@ -12172,11 +12177,11 @@
+                   int j = _ctrl->num_entries;
+                   if (_ctrl->bylayer
+                       && obj->handle.value == _ctrl->bylayer->absolute_ref)
+-                    i--;
++                    { if (!craft_had_handle) i--; }
+                   else if (_ctrl->byblock
+                            && obj->handle.value
+                                   == _ctrl->byblock->absolute_ref)
+-                    i--;
++                    { if (!craft_had_handle) i--; }
+                   else
+                     {
+                       if (dwg->header.from_version > R_2004 && _obj->name
