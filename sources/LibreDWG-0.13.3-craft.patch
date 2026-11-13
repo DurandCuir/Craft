@@ -1,6 +1,59 @@
 --- in_dxf.c.orig	2026-11-05 16:20:13.983555121 +0100
-+++ in_dxf.c	2026-11-05 17:41:42.734768216 +0100
-@@ -2318,9 +2318,10 @@
++++ in_dxf.c	2026-11-13 20:39:50.737979471 +0100
+@@ -1698,6 +1698,7 @@
+   return 0;
+ }
+ 
++static int craft_pending_appid = 0;
+ static void
+ add_eed (Dwg_Object *restrict obj, const char *restrict name,
+          Dxf_Pair *restrict pair)
+@@ -1723,10 +1724,23 @@
+               return;
+             }
+           if (i)
+-            memset (&eed[i], 0, sizeof (Dwg_Eed));
++            {
++              /* Craft: keep the APPID a 1001 just put there (every application after the first one lost its
++                 handle here, its data was merged into the first application's block); a new slot is never read */
++              Dwg_Handle craft_appid;
++              int craft_keep = craft_pending_appid;
++              memset (&craft_appid, 0, sizeof (Dwg_Handle));
++              if (craft_keep)
++                craft_appid = eed[i].handle;
++              memset (&eed[i], 0, sizeof (Dwg_Eed));
++              if (craft_keep)
++                eed[i].handle = craft_appid;
++            }
++          craft_pending_appid = 0;
+         }
+       else
+         {
++          craft_pending_appid = 0; /* Craft: the EED of a new object */
+           eed = (Dwg_Eed *)xcalloc (1, sizeof (Dwg_Eed));
+           if (!eed)
+             {
+@@ -1743,7 +1757,10 @@
+   // search for previous size index
+   for (j = i; j >= 0; j--)
+     if (eed[j].handle.code)
+-      prev = j;
++      {
++        prev = j; /* Craft: the NEAREST application before (a 2nd 1001 was merged into the 1st block) */
++        break;
++      }
+   if (!(prev >= 0 && prev <= i))
+     {
+       LOG_ERROR ("Invalid EED, no prev %d size 1000 code", prev);
+@@ -1818,6 +1835,7 @@
+     // 1001 is the name of the APPID handle, not part of size nor data
+     case 1:
+       obj->tio.object->num_eed--;
++      craft_pending_appid = 1;
+       prev = i;
+       if (!pair->value.s || !*pair->value.s)
+         {
+@@ -2318,9 +2336,10 @@
          }
        else if (pair->code == 70)
          {
@@ -12,7 +65,39 @@
              o->flag |= 256;
            LOG_TRACE ("LWPOLYLINE.flag = %d [BS 70]\n", o->flag);
          }
-@@ -9876,11 +9877,10 @@
+@@ -8698,21 +8717,23 @@
+                            NULL);
+   dwg_dynapi_entity_value (_obj, obj->name, "style", &style, NULL);
+ 
+-  if (elevation != 0.0)
++  /* Craft: a set bit means "not stored, default value" (dwg.spec): the rotation and alignments were dropped */
++  dataflags = 0;
++  if (elevation == 0.0)
+     dataflags |= 1;
+-  if (alignment_pt.x != ins_pt.x || alignment_pt.y != ins_pt.y)
++  if (horiz_alignment == 0 && vert_alignment == 0)
+     dataflags |= 2;
+-  if (oblique_angle != 0.0)
++  if (oblique_angle == 0.0)
+     dataflags |= 4;
+-  if (rotation != 0.0)
++  if (rotation == 0.0)
+     dataflags |= 8;
+-  if (width_factor != 1.0)
++  if (width_factor == 1.0 || width_factor == 0.0)
+     dataflags |= 0x10;
+-  if (generation != 0)
++  if (generation == 0)
+     dataflags |= 0x20;
+-  if (horiz_alignment != 0)
++  if (horiz_alignment == 0)
+     dataflags |= 0x40;
+-  if (vert_alignment != 0)
++  if (vert_alignment == 0)
+     dataflags |= 0x80;
+ 
+   if (!style)
+@@ -9876,11 +9897,10 @@
            else if (pair->code == 70 && obj->fixedtype == DWG_TYPE_LWPOLYLINE)
              {
                Dwg_Entity_LWPOLYLINE *o = obj->tio.entity->tio.LWPOLYLINE;
@@ -27,7 +112,25 @@
                LOG_TRACE ("LWPOLYLINE.flag => %d [BS 70]\n", flag);
                break;
              }
-@@ -12136,6 +12136,10 @@
+@@ -10408,6 +10428,17 @@
+                 {
+                   LOG_ERROR ("Invalid %s.tag %s\n", obj->name, pair->value.s);
+                 }
++              else if (pair->code == 70
++                       && (obj->fixedtype == DWG_TYPE_ATTRIB
++                           || obj->fixedtype == DWG_TYPE_ATTDEF))
++                {
++                  /* Craft 0.19.25: DXF 70 of an attribute is its flags (1 invisible, 2 constant, 4 verify, 8
++                     preset); the DXF table gives it to "type" only: every attribute of a DWG written from a DXF
++                     came out visible (Mozart's data of each piece shown beside it in AutoCAD) */
++                  BITCODE_RC flags = (BITCODE_RC)pair->value.i;
++                  dwg_dynapi_entity_set_value (_obj, obj->name, "flags", &flags, 0);
++                  LOG_TRACE ("%s.flags = %d [RC 70]\n", obj->name, flags);
++                }
+               else if (pair->code == 30 && pair->value.d == 0.0)
+                 {
+                   dwg_dynapi_entity_value (_obj, obj->name, "dataflags",
+@@ -12136,6 +12167,10 @@
                      obj->dxfname = NULL;
                    return DWG_ERR_INVALIDDWG;
                  }
@@ -38,7 +141,7 @@
                // A minimal DXF will have no handle values
                if (!obj->handle.value)
                  {
-@@ -12145,6 +12149,7 @@
+@@ -12145,6 +12180,7 @@
                    LOG_TRACE ("%s.handle = (0.%d." FORMAT_RLLx ")\n", obj->name,
                               obj->handle.size, obj->handle.value);
                  }
@@ -46,7 +149,7 @@
                {
                  Dwg_Object_BLOCK_CONTROL *_ctrl
                      = ctrl->tio.object->tio.BLOCK_CONTROL;
-@@ -12158,11 +12163,11 @@
+@@ -12158,11 +12194,11 @@
                        = ctrl->tio.object->tio.BLOCK_CONTROL;
                    if (_ctrl->model_space
                        && obj->handle.value == _ctrl->model_space->absolute_ref)
@@ -60,7 +163,7 @@
                  }
                else if (strEQc (table, "LTYPE"))
                  {
-@@ -12172,11 +12177,11 @@
+@@ -12172,11 +12208,11 @@
                    int j = _ctrl->num_entries;
                    if (_ctrl->bylayer
                        && obj->handle.value == _ctrl->bylayer->absolute_ref)
