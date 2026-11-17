@@ -1,9 +1,9 @@
 {
  "app_id": "craft-desktop",
- "version": "0.19.36",
- "zip": "https://raw.githubusercontent.com/DurandCuir/Craft/main/maj/Craft_Partage_v0.19.36.zip",
- "taille": 13836204,
- "sha256": "f30be1333323ae8d0a66b1ba9754e8f7b63b1efcd55a088bcf8a12035412c966",
+ "version": "0.19.37",
+ "zip": "https://raw.githubusercontent.com/DurandCuir/Craft/main/maj/Craft_Partage_v0.19.37.zip",
+ "taille": 13837980,
+ "sha256": "e1f34b954f82fdea493e109ce69950924592ff598f5d89656297da9513184010",
  "publiee": "2026-11-17",
- "signature": "TKyk3tIiEt5rZK8dz_HC6alws4riSE6KPHcw3J9u3riO3nAZw1YBcLagvflqKvbYmnbKPUm-z5BJ9-3r_XesAA"
+ "signature": "hmtNBEIl3Fw8q8Rorp05Z2JTXwPnIwxh1PwyjmqNxVXbu90RXlVozpjBjuus-VDAu0MP1BSW6Q520uEoEWKaDQ"
 }
